@@ -1,11 +1,19 @@
 import base64
 
+import cv2
+import numpy as np
 from fastapi import FastAPI, UploadFile, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
 templates = Jinja2Templates(directory='templates')
+
+
+def load_image_into_numpy_array(data):
+    npimg = np.frombuffer(data, np.uint8)
+    frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
+    return frame
 
 
 @app.get("/hello/{name}")
@@ -18,26 +26,16 @@ async def create_upload_files(request: Request, files: list[UploadFile]):
     for file in files:
         try:
             contents = file.file.read()
-            with open("uploaded_" + file.filename, "wb") as f:
-                f.write(contents)
+            image = load_image_into_numpy_array(contents)
+            _, thresh = cv2.threshold(image, 150, 255, cv2.THRESH_BINARY)
+            cv2.imwrite("image.jpg", thresh)
         except Exception:
             return {"message": "There was an error uploading the file"}
         finally:
             file.file.close()
 
-    base64_encoded_image = base64.b64encode(contents).decode("utf-8")
-
-    return templates.TemplateResponse("display.html", {"request": request, "myImage": base64_encoded_image})
-
+    return FileResponse('image.jpg')
 
 @app.get("/")
-async def main():
-    content = """
-<body>
-<form action="/uploadfiles/" enctype="multipart/form-data" method="post">
-<input name="files" type="file" multiple>
-<input type="submit">
-</form>
-</body>
-    """
-    return HTMLResponse(content=content)
+async def index(request: Request):
+    return templates.TemplateResponse('index.html', {"request": request})
