@@ -1,43 +1,29 @@
-import base64
-
+import cv2
 from fastapi import FastAPI, UploadFile, Request
-from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+
+from utils import image_from_bytes, zip_files, process_image
 
 app = FastAPI()
 templates = Jinja2Templates(directory='templates')
 
 
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
-
-
 @app.post("/uploadfiles/")
-async def create_upload_files(request: Request, files: list[UploadFile]):
-    for file in files:
+async def create_upload_files(files: list[UploadFile]):
+    for index, uploaded_file in enumerate(files):
         try:
-            contents = file.file.read()
-            with open("uploaded_" + file.filename, "wb") as f:
-                f.write(contents)
+            contents = uploaded_file.file.read()  # read image bytes
+            watermarked_image = image_from_bytes(contents)  # get cv2 image from bytes
+            unwatermarked_image = process_image(watermarked_image)
+            cv2.imwrite(f"{index}.jpg", unwatermarked_image)  # write image to disk
         except Exception:
             return {"message": "There was an error uploading the file"}
         finally:
-            file.file.close()
+            uploaded_file.file.close()
 
-    base64_encoded_image = base64.b64encode(contents).decode("utf-8")
-
-    return templates.TemplateResponse("display.html", {"request": request, "myImage": base64_encoded_image})
+    return zip_files([f"{i}.jpg" for i in range(len(files))])
 
 
 @app.get("/")
-async def main():
-    content = """
-<body>
-<form action="/uploadfiles/" enctype="multipart/form-data" method="post">
-<input name="files" type="file" multiple>
-<input type="submit">
-</form>
-</body>
-    """
-    return HTMLResponse(content=content)
+async def index(request: Request):
+    return templates.TemplateResponse('index.html', {"request": request})
