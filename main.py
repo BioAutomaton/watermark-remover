@@ -8,11 +8,6 @@ app = FastAPI()
 templates = Jinja2Templates(directory='templates')
 
 
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
-
-
 @app.post("/uploadfiles/")
 async def create_upload_files(request: Request, files: list[UploadFile]):
     for i, file in enumerate(files):
