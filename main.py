@@ -1,11 +1,9 @@
 import cv2
-from fastapi import FastAPI, UploadFile, Request
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, UploadFile
 
 from utils import image_from_bytes, zip_files, process_image
 
 app = FastAPI()
-templates = Jinja2Templates(directory='templates')
 
 
 @app.post("/uploadfiles/")
@@ -22,8 +20,3 @@ async def create_upload_files(files: list[UploadFile]):
             uploaded_file.file.close()
 
     return zip_files([f"{i}.jpg" for i in range(len(files))])
-
-
-@app.get("/")
-async def index(request: Request):
-    return templates.TemplateResponse('index.html', {"request": request})
