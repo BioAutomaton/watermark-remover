@@ -6,8 +6,8 @@ from utils import image_from_bytes, zip_files, process_image
 app = FastAPI()
 
 
-@app.post("/uploadfiles/")
-async def create_upload_files(files: list[UploadFile]):
+@app.post("/")
+async def unwatermark_image(files: list[UploadFile]):
     for index, uploaded_file in enumerate(files):
         try:
             contents = uploaded_file.file.read()  # read image bytes
